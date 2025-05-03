@@ -11,16 +11,17 @@
 
 # 2.1 DATA IMPORT
 # Import dataset (edit the file path according to file location)
-fileUrl = '/Users/timi/Library/CloudStorage/OneDrive-AsiaPacificUniversity/Desktop/APU/Degree 2025/Sem 1/Programming for Data Analysis/PFDA Group Assignment/retail_data 1.csv'
+fileUrl = 'D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\retail_data 1.csv'
 
 # Read the csv file
 df = read.csv(fileUrl)
 
 # View the dataset
-View(df)
+#View(df)
 
 
 # 2.2 DATA CLEANING
+# 2.2.1 MISSING VALUE
 # Check structure of data set
 str(df)
 
@@ -30,7 +31,7 @@ str(df)
 
 # Make all empty spaces = NA
 # List of columns to clean
-columns_to_clean <- c("ratings", "product_category", "age", "gender", "shipping_method",
+cols_to_clean <- c("ratings", "product_category", "age", "gender", "shipping_method",
                       "income", "customer_segment", "total_purchases", "total_amount",
                       "payment_method", "order_status", "transaction_id", "customer_id",
                       "name", "email", "phone", "address", "city", "state", "zipcode",
@@ -112,21 +113,23 @@ df$order_status[is.na(df$order_status)] <- "Unknown"
 df$feedback[is.na(df$feedback)] <- "Unknown"
 
 
+#install.packages("hot.deck")
+library(hot.deck)
 # Hot deck imputation
 # Gender, income, customer segment (by age)
-df <- hotdeck(df, variable = c("gender", "income", "customer_segment"), domain_var = "age", imp_var = FALSE)
+df <- hot.deck(df, variable = c("gender", "income", "customer_segment"), domain_var = "age", imp_var = FALSE)
 
 # Location fields (by zipcode)
-df <- hotdeck(df, variable = c("city", "state", "country"), domain_var = "zipcode", imp_var = FALSE)
+df <- hot.deck(df, variable = c("city", "state", "country"), domain_var = "zipcode", imp_var = FALSE)
 
 # Shipping & payment method (by country)
-df <- hotdeck(df, variable = c("shipping_method", "payment_method"), domain_var = "country", imp_var = FALSE)
+df <- hot.deck(df, variable = c("shipping_method", "payment_method"), domain_var = "country", imp_var = FALSE)
 
 # Product brand and type (by product category)
-df <- hotdeck(df, variable = c("product_brand", "product_type"), domain_var = "product_category", imp_var = FALSE)
+df <- hot.deck(df, variable = c("product_brand", "product_type"), domain_var = "product_category", imp_var = FALSE)
 
 # Ratings (by feedback)
-df <- hotdeck(df, variable = "ratings", domain_var = "feedback", imp_var = FALSE)
+df <- hot.deck(df, variable = "ratings", domain_var = "feedback", imp_var = FALSE)
 
 
 
