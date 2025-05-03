@@ -5,7 +5,12 @@
 #2 Yong Yung Hao, TP069044
 #3 Chong Wen Kang, TP071658
 
-
+# Install and load required packages
+#install.packages("DataExplorer")
+#install.packages("VIM")
+library(DataExplorer)
+library(VIM)
+library(dplyr)
 
 # 2.0 DATA PREPARATION
 
@@ -18,6 +23,7 @@ df = read.csv(fileUrl)
 
 # View the dataset
 #View(df)
+
 
 
 # 2.2 DATA CLEANING
@@ -42,31 +48,40 @@ cols_to_clean <- c("ratings", "product_category", "age", "gender", "shipping_met
 df[cols_to_clean] <- lapply(df[cols_to_clean], function(x) replace(x, x == "", NA))
 
 # Observe data NA values
-#install.packages("DataExplorer")
-library(DataExplorer)
-
 plot_missing(df)
 
 # For shipping method column
 # Remove the hyphen from "Same-Day" and make it "Same Day"
 df$shipping_method <- gsub("-", " ", df$shipping_method)
 
+# 2.2.1 Convert Data Type
+# Phone - from numeric to character
+df$phone <- as.character(df$phone)
+
+# Date
+df$date <- as.Date(df$date, format = "%m/%d/%Y")
+
+# Convert month names to numbers
+df$month <- match(df$month, month.name)
+
+# Round numeric columns to 2 decimal
+df$total_amount     <- round(df$total_amount, 2)
+df$amount           <- round(df$amount, 2)
+
 
 # 2.2.2 Handle Missing Values
 # Show the number of NA values per column
 colSums(is.na(df))
 
+# CLEAN Transaction_ID or Customer_ID
 # Remove rows where Transaction_ID or Customer_ID is NA
 df <- df[!is.na(df$transaction_id) & !is.na(df$customer_id), ]
 
 # NA for transaction_id and customer_id column should be 0
 colSums(is.na(df))
 
-# Clean product_category using product_brand mapping
-# Install and load required packages
-#install.packages("VIM")
-library(VIM)
-library(dplyr)
+
+# CLEAN product_category using product_brand mapping
 
 # Create a look-up table from non-missing values
 #1 Filter column without missing values
@@ -92,25 +107,49 @@ df[c("product_brand", "product_category_before", "product_category")]
 df$common_category <- NULL
 df$product_category_before <- NULL
 
+# NA for product_category column should be 0
+colSums(is.na(df))
 
+
+# CLEAN date, year, and month columns
+# Fill missing 'date' using available 'year' and 'month'
+df$date[is.na(df$date) & !is.na(df$year) & !is.na(df$month)] <- as.Date(
+  paste0(df$year[is.na(df$date) & !is.na(df$year) & !is.na(df$month)],
+         "-",
+         sprintf("%02d", df$month[is.na(df$date) & !is.na(df$year) & !is.na(df$month)]),
+         "-01")
+)
+
+# Fill missing 'year' from 'date'
+df$year[is.na(df$year) & !is.na(df$date)] <- as.integer(format(df$date[is.na(df$year) & !is.na(df$date)], "%Y"))
+
+# Fill missing 'month' (integer form) from 'date'
+df$month[is.na(df$month) & !is.na(df$date)] <- as.integer(format(df$date[is.na(df$month) & !is.na(df$date)], "%m"))
+
+# Drop helper column if it exists (for consistency)
+df$month_num <- NULL
+
+
+
+# CLEAN Other Columns
 # Median imputation for Numerical Variables
-df$age[is.na(df$age)]                         <- median(as.numeric(df$age), na.rm = TRUE)
-df$total_purchases[is.na(df$total_purchases)] <- median(as.numeric(df$total_purchases), na.rm = TRUE)
-df$total_amount[is.na(df$total_amount)]       <- median(as.numeric(df$total_amount), na.rm = TRUE)
-df$amount[is.na(df$amount)]                   <- median(as.numeric(df$amount), na.rm = TRUE)
+df$age[is.na(df$age)]                         <- median(df$age, na.rm = TRUE)
+df$total_purchases[is.na(df$total_purchases)] <- median(df$total_purchases, na.rm = TRUE)
+df$total_amount[is.na(df$total_amount)]       <- median(df$total_amount, na.rm = TRUE)
+df$amount[is.na(df$amount)]                   <- median(df$amount, na.rm = TRUE)
 
 
 # Direct imputations
 # Flag as Unknown or -1
-df$name[is.na(df$name)]         <- "Unknown"
-df$email[is.na(df$email)]       <- "Unknown"
-df$address[is.na(df$address)]   <- "Unknown"
-df$zipcode[is.na(df$zipcode)]   <- -1
-df$phone[is.na(df$phone)]       <- -1
-df$time[is.na(df$time)]         <- "Unknown"
-df$products[is.na(df$products)] <- "Unknown"
+df$name[is.na(df$name)]                 <- "Unknown"
+df$email[is.na(df$email)]               <- "Unknown"
+df$address[is.na(df$address)]           <- "Unknown"
+df$zipcode[is.na(df$zipcode)]           <- -1
+df$phone[is.na(df$phone)]               <- "Unknown"
+df$time[is.na(df$time)]                 <- "Unknown"
+df$products[is.na(df$products)]         <- "Unknown"
 df$order_status[is.na(df$order_status)] <- "Unknown"
-df$feedback[is.na(df$feedback)] <- "Unknown"
+df$feedback[is.na(df$feedback)]         <- "Unknown"
 
 
 #install.packages("hot.deck")
@@ -132,35 +171,6 @@ df <- hot.deck(df, variable = c("product_brand", "product_type"), domain_var = "
 df <- hot.deck(df, variable = "ratings", domain_var = "feedback", imp_var = FALSE)
 
 
-
-# Handle date, year, and month columns
-# Convert 'date' to Date format
-df$date <- as.Date(df$date, format = "%m/%d/%Y")
-
-# Convert month names to numbers for imputation (ex:"January" to 1)
-month_map <- setNames(1:12, month.name)
-df$month_num <- month_map[df$month]
-
-# Fill missing 'date' using available 'year' and 'month_num'
-df$date[is.na(df$date) & !is.na(df$year) & !is.na(df$month_num)] <- as.Date(
-  paste0(df$year[is.na(df$date) & !is.na(df$year) & !is.na(df$month_num)],
-         "-",
-         sprintf("%02d", df$month_num[is.na(df$date) & !is.na(df$year) & !is.na(df$month_num)]),
-         "-01")
-)
-
-# Fill missing 'year' from 'date'
-df$year[is.na(df$year) & !is.na(df$date)] <- as.integer(format(df$date[is.na(df$year) & !is.na(df$date)], "%Y"))
-
-# Fill missing 'month' (character form) from 'date'
-df$month[is.na(df$month) & !is.na(df$date)] <- month.name[as.integer(format(df$date[is.na(df$month) & !is.na(df$date)], "%m"))]
-
-# Drop helper column
-df$month_num <- NULL
-
-colSums(is.na(df))
-
-
 # Remove columns with NA remaining after imputations due to unknown refer column
 df <- df[complete.cases(df[, c("city", "state", "country", "ratings", "month")]), ]
 
@@ -170,59 +180,4 @@ colSums(is.na(df))
 # Observe cleaned data NA values
 plot_missing(df)
 
-
-
-
-
-# 3.0 DATA ANALYSIS
-# 3.1 OBJECTIVE 1: 
-# To study the impact of the shipping method towards the ratings given by customers. – Wee Yue Tim TP070811
-
-# ANALYSIS 3.1.1:
-# What is the distribution of satisfaction ratings across different shipping methods? (Descriptive Analysis)
-
-# Load necessary libraries
-library(ggplot2)
-library(dplyr)
-
-#1 Frequency Table: Count ratings by shipping method
-freq_table <- df %>%
-  count(shipping_method, ratings) %>% #Counts how many times each combination of shipping_method and ratings
-  arrange(shipping_method) # Sorts the output by shipping method alphabetically
-
-print(freq_table)
-
-
-#2 Bar Plot: Distribution of ratings by shipping method
-ggplot(df, aes(x = shipping_method, fill = ratings)) +
-  geom_bar(position = "dodge") + # Places bars side by side for comparison
-  geom_text(stat = 'count', aes(label = ..count..), position = position_dodge(0.8), vjust = -0.5, size = 2.5, color = "#34495E") +
-  labs(title = "Distribution of Ratings by Shipping Method",
-       x = "Shipping Method", y = "Count") +
-  scale_fill_manual(values = c("High" = "#1E90FF", "Low" = "#FF4500")) +  # Custom colors
-  theme_minimal() + # Plot styles
-  theme(
-    plot.title = element_text(size = 14, face = "bold", color = "black", hjust = 0.5),  # Center title
-    axis.title.x = element_text(size = 10, face = "bold", color = "black"),
-    axis.title.y = element_text(size = 10, face = "bold", color = "black"),
-    axis.text.x = element_text(size = 8, color = "#7F8C8D"),
-    axis.text.y = element_text(size = 8, color = "#7F8C8D"),
-    legend.title = element_text(size = 10, face = "bold", color = "black"),
-    legend.text = element_text(size = 8, color = "#7F8C8D")
-  )
-
-
-#3 Summary Statistics: Count and percentage of ratings per shipping method
-summary_stats <- df %>%
-  group_by(shipping_method, ratings) %>% # Groups the dataset by shipping_method and ratings
-  summarise(count = n()) %>% # Counts how many of each rating
-  mutate(percentage = (count / sum(count)) * 100) # Calculates percentage of each rating within that shipping method
-
-print(summary_stats)
-
-
-
-# ANALYSIS 3.1.2
-# ANALYSIS 3.1.3
-# ANALYSIS 3.1.4
 
