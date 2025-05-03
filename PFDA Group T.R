@@ -11,6 +11,7 @@
 library(DataExplorer)
 library(VIM)
 library(dplyr)
+library(ggplot2)
 
 # 2.0 DATA PREPARATION
 
@@ -24,35 +25,14 @@ df = read.csv(fileUrl)
 # View the dataset
 #View(df)
 
-
-
 # 2.2 DATA CLEANING
-# 2.2.1 MISSING VALUE
+# 2.2.1 Convert Data Type
 # Check structure of data set
 str(df)
 
 # Lowercase all column names
 names(df) <- tolower(names(df))
 str(df)
-
-# Make all empty spaces = NA
-# List of columns to clean
-cols_to_clean <- c("ratings", "product_category", "age", "gender", "shipping_method",
-                      "income", "customer_segment", "total_purchases", "total_amount",
-                      "payment_method", "order_status", "transaction_id", "customer_id",
-                      "name", "email", "phone", "address", "city", "state", "zipcode",
-                      "country", "date", "year", "month", "time", "amount", "product_brand",
-                      "product_type", "feedback", "products")
-
-# Replace empty spaces " " to NA for all columns
-df[cols_to_clean] <- lapply(df[cols_to_clean], function(x) replace(x, x == "", NA))
-
-# Observe data NA values
-plot_missing(df)
-
-# For shipping method column
-# Remove the hyphen from "Same-Day" and make it "Same Day"
-df$shipping_method <- gsub("-", " ", df$shipping_method)
 
 # 2.2.1 Convert Data Type
 # Phone - from numeric to character
@@ -68,8 +48,29 @@ df$month <- match(df$month, month.name)
 df$total_amount     <- round(df$total_amount, 2)
 df$amount           <- round(df$amount, 2)
 
+str(df)
 
 # 2.2.2 Handle Missing Values
+
+# Make all empty spaces = NA
+# List of columns to clean
+cols_to_clean <- c("ratings", "product_category", "age", "gender", "shipping_method",
+                   "income", "customer_segment", "total_purchases", "total_amount",
+                   "payment_method", "order_status", "transaction_id", "customer_id",
+                   "name", "email", "phone", "address", "city", "state", "zipcode",
+                   "country", "date", "year", "month", "time", "amount", "product_brand",
+                   "product_type", "feedback", "products")
+
+# Replace empty spaces " " to NA for all columns
+df[cols_to_clean] <- lapply(df[cols_to_clean], function(x) replace(x, x == "", NA))
+
+# Observe data NA values
+plot_missing(df)
+
+# For shipping method column
+# Remove the hyphen from "Same-Day" and make it "Same Day"
+df$shipping_method <- gsub("-", " ", df$shipping_method)
+
 # Show the number of NA values per column
 colSums(is.na(df))
 
@@ -129,15 +130,12 @@ df$month[is.na(df$month) & !is.na(df$date)] <- as.integer(format(df$date[is.na(d
 # Drop helper column if it exists (for consistency)
 df$month_num <- NULL
 
-
-
 # CLEAN Other Columns
 # Median imputation for Numerical Variables
 df$age[is.na(df$age)]                         <- median(df$age, na.rm = TRUE)
 df$total_purchases[is.na(df$total_purchases)] <- median(df$total_purchases, na.rm = TRUE)
 df$total_amount[is.na(df$total_amount)]       <- median(df$total_amount, na.rm = TRUE)
 df$amount[is.na(df$amount)]                   <- median(df$amount, na.rm = TRUE)
-
 
 # Direct imputations
 # Flag as Unknown or -1
@@ -151,25 +149,21 @@ df$products[is.na(df$products)]         <- "Unknown"
 df$order_status[is.na(df$order_status)] <- "Unknown"
 df$feedback[is.na(df$feedback)]         <- "Unknown"
 
-
-#install.packages("hot.deck")
-library(hot.deck)
 # Hot deck imputation
 # Gender, income, customer segment (by age)
-df <- hot.deck(df, variable = c("gender", "income", "customer_segment"), domain_var = "age", imp_var = FALSE)
+df <- hotdeck(df, variable = c("gender", "income", "customer_segment"), domain_var = "age", imp_var = FALSE)
 
 # Location fields (by zipcode)
-df <- hot.deck(df, variable = c("city", "state", "country"), domain_var = "zipcode", imp_var = FALSE)
+df <- hotdeck(df, variable = c("city", "state", "country"), domain_var = "zipcode", imp_var = FALSE)
 
 # Shipping & payment method (by country)
-df <- hot.deck(df, variable = c("shipping_method", "payment_method"), domain_var = "country", imp_var = FALSE)
+df <- hotdeck(df, variable = c("shipping_method", "payment_method"), domain_var = "country", imp_var = FALSE)
 
 # Product brand and type (by product category)
-df <- hot.deck(df, variable = c("product_brand", "product_type"), domain_var = "product_category", imp_var = FALSE)
+df <- hotdeck(df, variable = c("product_brand", "product_type"), domain_var = "product_category", imp_var = FALSE)
 
 # Ratings (by feedback)
-df <- hot.deck(df, variable = "ratings", domain_var = "feedback", imp_var = FALSE)
-
+df <- hotdeck(df, variable = "ratings", domain_var = "feedback", imp_var = FALSE)
 
 # Remove columns with NA remaining after imputations due to unknown refer column
 df <- df[complete.cases(df[, c("city", "state", "country", "ratings", "month")]), ]
@@ -180,4 +174,31 @@ colSums(is.na(df))
 # Observe cleaned data NA values
 plot_missing(df)
 
+#2.2.3 Handling Outliers
+# Step 1: Identify numeric columns
+str(df)
 
+# Step 2: Select all numeric columns where outliers may appeared
+num_col = c("age","total_purchases","amount","total_amount")
+
+# Step 3: Visualize the data using boxplot to spot outliers
+for (col in num_col) {
+  print(ggplot(df, aes_string(x = col)) + 
+          geom_boxplot(fill = "lightblue",outlier.color="red"))
+}
+
+# Only spot outlier after Q3 at total_amount
+# Step 4: Replace outlier with upper limit
+q1 = quantile(df$total_amount,0.25)
+q3 = quantile(df$total_amount,0.75)
+IQR = q3-q1
+up = q3 + 1.5 * IQR
+df$total_amount = replace(df$total_amount,df$total_amount>up,up)
+up
+# Step 5: Check boxplot again to ensure outlier is replaced
+ggplot(df,aes(x=total_amount)) + 
+  geom_boxplot(fill = "lightblue",outlier.color = "red")
+
+#2.3 Data Export
+# Export the cleaned data into csv file format
+write.csv(df,"D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\cleaned_data.csv")
