@@ -11,13 +11,14 @@
 
 # 2.1 DATA IMPORT
 # Import dataset (edit the file path according to file location)
-fileUrl = '/Users/timi/Library/CloudStorage/OneDrive-AsiaPacificUniversity/Desktop/APU/Degree 2025/Sem 1/Programming for Data Analysis/PFDA Group Assignment/retail_data 1.csv'
+fileUrl = '/Users/ecloudvalley/Library/CloudStorage/OneDrive-AsiaPacificUniversityofTechnologyAndInnovation(APU)/APU/Degree/Sem1/Programming with data analytic/R Programming/PFDA-Assignment/Group Assignment/retail_data 1.csv'
 
 # Read the csv file
 df = read.csv(fileUrl)
 
 # View the dataset
 View(df)
+
 
 
 # 2.2 DATA CLEANING
