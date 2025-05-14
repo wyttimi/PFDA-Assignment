@@ -12,6 +12,7 @@ library(DataExplorer)
 library(VIM)
 library(dplyr)
 library(ggplot2)
+library(openxlsx)
 
 # 2.0 DATA PREPARATION
 
@@ -199,6 +200,7 @@ up
 ggplot(df,aes(x=total_amount)) + 
   geom_boxplot(fill = "lightblue",outlier.color = "red")
 
+plot_missing(df)
 #2.3 Data Export
 # Export the cleaned data into csv file format
-write.csv(df,"D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\cleaned_data.csv")
+write.xlsx(df,"D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\cleaned_data.xlsx")
