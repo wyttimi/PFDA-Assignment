@@ -24,7 +24,7 @@ fileUrl = 'D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\retail_data
 df = read.csv(fileUrl)
 
 # View the dataset
-#View(df)
+View(df)
 
 # 2.2 DATA CLEANING
 # 2.2.1 Convert Data Type
@@ -35,7 +35,6 @@ str(df)
 names(df) <- tolower(names(df))
 str(df)
 
-# 2.2.1 Convert Data Type
 # Phone - from numeric to character
 df$phone <- as.character(df$phone)
 
@@ -50,6 +49,7 @@ df$total_amount     <- round(df$total_amount, 2)
 df$amount           <- round(df$amount, 2)
 
 str(df)
+
 
 # 2.2.2 Handle Missing Values
 
@@ -93,6 +93,8 @@ brand_category_map <- df %>%
   group_by(product_brand) %>%
   summarise(common_category = names(sort(table(product_category), decreasing = TRUE))[1])
 
+print(brand_category_map)
+
 # Save original category for comparison
 df$product_category_before <- df$product_category
 
@@ -114,6 +116,7 @@ colSums(is.na(df))
 
 
 # CLEAN date, year, and month columns
+
 # Fill missing 'date' using available 'year' and 'month'
 df$date[is.na(df$date) & !is.na(df$year) & !is.na(df$month)] <- as.Date(
   paste0(df$year[is.na(df$date) & !is.na(df$year) & !is.na(df$month)],
@@ -175,6 +178,7 @@ colSums(is.na(df))
 # Observe cleaned data NA values
 plot_missing(df)
 
+
 #2.2.3 Handling Outliers
 # Step 1: Identify numeric columns
 str(df)
@@ -201,6 +205,8 @@ ggplot(df,aes(x=total_amount)) +
   geom_boxplot(fill = "lightblue",outlier.color = "red")
 
 plot_missing(df)
+
+
 #2.3 Data Export
 # Export the cleaned data into csv file format
 write.xlsx(df,"D:\\User\\Documents\\APU\\Degree\\Y2S1\\PFDA\\Assignment\\cleaned_data.xlsx")
